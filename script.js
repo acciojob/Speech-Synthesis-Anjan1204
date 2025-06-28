@@ -29,10 +29,8 @@ function populateVoices() {
   });
 }
 
-// Repopulate voices when they are loaded
 synth.onvoiceschanged = populateVoices;
 
-// Start speaking
 function speak() {
   const text = textInput.value.trim();
   if (!text) {
@@ -55,12 +53,12 @@ function speak() {
   utterance.onend = () => {
     statusMsg.textContent = "Done speaking.";
   };
+
   utterance.onerror = (e) => {
     statusMsg.textContent = "An error occurred: " + e.error;
   };
 }
 
-// Stop speaking
 function stopSpeaking() {
   if (synth.speaking) {
     synth.cancel();
@@ -68,15 +66,14 @@ function stopSpeaking() {
   }
 }
 
-// Update rate & pitch values on screen
 rateInput.addEventListener("input", () => {
   rateValue.textContent = rateInput.value;
 });
+
 pitchInput.addEventListener("input", () => {
   pitchValue.textContent = pitchInput.value;
 });
 
-// Restart speech if voice changes mid-speech
 voiceSelect.addEventListener("change", () => {
   if (synth.speaking) {
     speak();
@@ -86,5 +83,4 @@ voiceSelect.addEventListener("change", () => {
 speakBtn.addEventListener("click", speak);
 stopBtn.addEventListener("click", stopSpeaking);
 
-// Initial setup
 populateVoices();
