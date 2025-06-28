@@ -1,81 +1,90 @@
-const textInput = document.getElementById("text-input");
-const voiceSelect = document.getElementById("voice-select");
+const textInput = document.getElementById("text");
+const voiceSelect = document.getElementById("voiceSelect");
 const rateInput = document.getElementById("rate");
 const pitchInput = document.getElementById("pitch");
-const speakButton = document.getElementById("speak");
-const stopButton = document.getElementById("stop");
-const rateValue = document.getElementById("rate-value");
-const pitchValue = document.getElementById("pitch-value");
-const errorMessage = document.getElementById("error-message");
+const rateValue = document.getElementById("rateValue");
+const pitchValue = document.getElementById("pitchValue");
+const speakBtn = document.getElementById("speakBtn");
+const stopBtn = document.getElementById("stopBtn");
+const statusMsg = document.getElementById("status");
 
-const synth = window.speechSynthesis;
 let voices = [];
-let utterance = new SpeechSynthesisUtterance();
+const synth = window.speechSynthesis;
+let utterance = null;
 
-// Load voices dynamically
 function populateVoices() {
   voices = synth.getVoices();
-  voiceSelect.innerHTML = '';
+  voiceSelect.innerHTML = "";
 
   if (voices.length === 0) {
-    errorMessage.textContent = "No voices available. Try refreshing your browser.";
+    statusMsg.textContent = "No voices available on this device.";
     return;
   }
 
   voices.forEach((voice, index) => {
     const option = document.createElement("option");
-    option.textContent = `${voice.name} (${voice.lang})`;
     option.value = index;
+    option.textContent = `${voice.name} (${voice.lang})${voice.default ? " [Default]" : ""}`;
     voiceSelect.appendChild(option);
   });
 }
 
-// Voice change triggers restart
-voiceSelect.addEventListener("change", () => {
-  if (synth.speaking) {
-    stopSpeech();
-    speakText();
-  }
-});
+// Repopulate voices when they are loaded
+synth.onvoiceschanged = populateVoices;
 
-// Rate and pitch sliders
-rateInput.addEventListener("input", () => {
-  rateValue.textContent = rateInput.value;
-});
-
-pitchInput.addEventListener("input", () => {
-  pitchValue.textContent = pitchInput.value;
-});
-
-// Speak the input text
-function speakText() {
+// Start speaking
+function speak() {
   const text = textInput.value.trim();
   if (!text) {
-    errorMessage.textContent = "Please enter text to speak.";
+    statusMsg.textContent = "Please enter some text to speak.";
     return;
   }
-  errorMessage.textContent = "";
+
+  if (utterance && synth.speaking) {
+    synth.cancel(); // Stop current speech if ongoing
+  }
 
   utterance = new SpeechSynthesisUtterance(text);
-  const selectedVoice = voices[voiceSelect.value];
-  if (selectedVoice) utterance.voice = selectedVoice;
+  utterance.voice = voices[voiceSelect.value];
   utterance.rate = parseFloat(rateInput.value);
   utterance.pitch = parseFloat(pitchInput.value);
 
   synth.speak(utterance);
+  statusMsg.textContent = "Speaking...";
+
+  utterance.onend = () => {
+    statusMsg.textContent = "Done speaking.";
+  };
+  utterance.onerror = (e) => {
+    statusMsg.textContent = "An error occurred: " + e.error;
+  };
 }
 
 // Stop speaking
-function stopSpeech() {
-  synth.cancel();
+function stopSpeaking() {
+  if (synth.speaking) {
+    synth.cancel();
+    statusMsg.textContent = "Speech stopped.";
+  }
 }
 
-// Button Events
-speakButton.addEventListener("click", speakText);
-stopButton.addEventListener("click", stopSpeech);
+// Update rate & pitch values on screen
+rateInput.addEventListener("input", () => {
+  rateValue.textContent = rateInput.value;
+});
+pitchInput.addEventListener("input", () => {
+  pitchValue.textContent = pitchInput.value;
+});
 
-// Load voices when available
-if (speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = populateVoices;
-}
-window.addEventListener("load", populateVoices);
+// Restart speech if voice changes mid-speech
+voiceSelect.addEventListener("change", () => {
+  if (synth.speaking) {
+    speak();
+  }
+});
+
+speakBtn.addEventListener("click", speak);
+stopBtn.addEventListener("click", stopSpeaking);
+
+// Initial setup
+populateVoices();
